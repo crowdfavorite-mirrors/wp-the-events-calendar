@@ -28,11 +28,13 @@ if( !class_exists( 'TribeEventsListWidget' ) ) {
 
 		function widget_output( $args, $instance, $template_name='events-list-load-widget-display' ) {
 			global $wp_query, $tribe_ecp, $post;
-			$old_post = $post;
 			extract( $args, EXTR_SKIP );
 			extract( $instance, EXTR_SKIP );
 			// extracting $instance provides $title, $limit
 			$title = apply_filters('widget_title', $title );
+			if (!isset($category)) {
+				$category = null;
+			}
 			if ( tribe_get_option('viewOption') == 'upcoming') {
 				$event_url = tribe_get_listview_link($category != -1 ? intval($category) : null);
 			} else {
@@ -40,7 +42,7 @@ if( !class_exists( 'TribeEventsListWidget' ) ) {
 			}
 
 			if( function_exists( 'tribe_get_events' ) ) {
-				$posts = tribe_get_events( 'eventDisplay=upcoming&numResults=' . $limit .'&eventCat=' . $category );
+				$posts = tribe_get_events( 'eventDisplay=upcoming&posts_per_page=' . $limit .'&eventCat=' . $category );
 				$template = TribeEventsTemplates::getTemplateHierarchy( $template_name );
 			}
 
@@ -64,8 +66,6 @@ if( !class_exists( 'TribeEventsListWidget' ) ) {
 				endforeach;
 				echo "</ul>";
 
-				$wp_query->set('eventDisplay', $old_display);
-
 				/* Display link to all events */
 				echo '<div class="dig-in"><a href="' . $event_url . '">' . __('View All Events', 'tribe-events-calendar' ) . '</a></div>';
 			} 
@@ -75,7 +75,7 @@ if( !class_exists( 'TribeEventsListWidget' ) ) {
 
 			/* After widget (defined by themes). */
 			echo $after_widget;
-			$post = $old_post;
+			wp_reset_query();
 		}	
 	
 		function update( $new_instance, $old_instance ) {
@@ -91,7 +91,7 @@ if( !class_exists( 'TribeEventsListWidget' ) ) {
 	
 		function form( $instance ) {				
 			/* Set up default widget settings. */
-			$defaults = array( 'title' => 'Upcoming Events', 'limit' => '5');
+			$defaults = array( 'title' => 'Upcoming Events', 'limit' => '5', 'no_upcoming_events' => false);
 			$instance = wp_parse_args( (array) $instance, $defaults );
 			$tribe_ecp = TribeEvents::instance();		
 			include( $tribe_ecp->pluginPath . 'admin-views/widget-admin-list.php' );

@@ -166,14 +166,14 @@ select.tribe-events-dropdown {
 	overflow:hidden;
 	margin-bottom:0;
 }
-.single-sp_venue .upcoming .entry-title, .events-archive .upcoming .entry-title {
+.single-tribe_venue .upcoming .entry-title, .events-archive .upcoming .entry-title {
 	margin:15px 0 6px;
 	font-size:18px;
 	font-weight:bold;
 	line-height: 1em;
 	padding: 0;
 }
-.events-archive .event-day, .single-sp_venue .event-day, .venue-events .event-day {
+.events-archive .event-day, .single-tribe_venue .event-day, .venue-events .event-day {
 	font-size:18px;
 	margin-top:18px !important;
 	font-style:italic;
@@ -423,12 +423,12 @@ h4.tribe-events-event-day + .post .entry-title {margin-top:6px;}
 	padding-bottom:10px;
 }
 
-.previous{
+.tribe-previous{
 	float:left;
 	clear:both;
 }
 
-.next{
+.tribe-next{
 	float:right;
 	text-align:right;
 }
@@ -516,4 +516,27 @@ h4 .tribe-view-all-events {
 }
 *+html #tribe-events-calendar-header {
 	margin-bottom:30px;
+}
+
+/* Event-Passed styling */
+.event-passed {
+    background: #D9EDF7;
+    border: 1px solid #BCE8F1;
+    color: #3A87AD;
+    margin: 10px 0 18px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 #fff;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+}
+
+/* Promo-Banner styling */
+p.tribe-promo-banner {
+	font-size: 12px;
+	color: #999;
+}
+
+p.tribe-promo-banner a {
+	color: #666;	
 }

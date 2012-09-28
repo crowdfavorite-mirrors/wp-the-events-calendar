@@ -16,8 +16,8 @@ if (!class_exists('TribeEventsQuery')) {
 		// if this is an event, then set up our query vars
 		public static function setupQuery($query) {
 			if ( !is_admin() && (
-					  ((isset($_GET['post_type']) && $_GET['post_type'] == TribeEvents::POSTTYPE) || (isset($_GET['sp_events_cat']) && $_GET['sp_events_cat'] != '')) ||
-					  ((isset($query->query_vars['post_type']) && $query->query_vars['post_type'] == TribeEvents::POSTTYPE) || (isset($query->query_vars['sp_events_cat']) && $query->query_vars['sp_events_cat'] != ''))
+					  ((isset($_GET['post_type']) && $_GET['post_type'] == TribeEvents::POSTTYPE) || (isset($_GET['tribe_events_cat']) && $_GET['tribe_events_cat'] != '')) ||
+					  ((isset($query->query_vars['post_type']) && $query->query_vars['post_type'] == TribeEvents::POSTTYPE) || (isset($query->query_vars['tribe_events_cat']) && $query->query_vars['tribe_events_cat'] != ''))
 					)
 				)
 			{
@@ -26,7 +26,7 @@ if (!class_exists('TribeEventsQuery')) {
 				add_filter('parse_tribe_event_query', array( __CLASS__, 'setupQueryArgs' ) );
 				add_filter('parse_tribe_event_query', array( __CLASS__, 'setArgsFromDisplayType' ) );			
 			
-				// filter to manipulate the sp_event_query parameters
+				// filter to manipulate the tribe_event_query parameters
 				apply_filters( 'parse_tribe_event_query', $query );		
 				add_filter( 'posts_join', array(__CLASS__, 'setupJoins' ), 10, 2 );
 				add_filter( 'posts_where', array(__CLASS__, 'addEventConditions'), 10, 2);
@@ -48,11 +48,13 @@ if (!class_exists('TribeEventsQuery')) {
 		
 			if (!empty($args['numResults'])) {
 				$args['posts_per_page'] = $args['numResults'];
+			} elseif (empty($args['posts_per_page'])) {
+				$args['posts_per_page'] = (int) tribe_get_option( 'postsPerPage', 10 );
 			}
-
-	      if (!empty($args['venue'])) {
+			
+      if (!empty($args['venue'])) {
 				$args['meta_query'][] = array('key'=>'_EventVenueID', 'value'=>$args['venue']);
-	      }
+      }
 
 			// proprietary metaKeys go to standard meta
 			if (!empty($args['metaKey']))
@@ -66,29 +68,31 @@ if (!class_exists('TribeEventsQuery')) {
 		}
 
 		public static function setArgsFromDisplayType($query) { 
-         if( !empty($query->query_vars['eventDisplay']) ) {
-            switch ( $query->query_vars['eventDisplay'] ) {
-               case "past":
-                  $query = self::setPastDisplayTypeArgs($query);
-                  break;
-               case "upcoming":
-                  $query = self::setUpcomingDisplayTypeArgs($query);
-                  break;
-               case "day":
-                  $query = self::setDayDisplayTypeArgs($query);
-                  break;
-               case "all":
-                  $query = self::setAllDisplayTypeArgs($query);
-                  break;				
-               case "month":
-                  $query = self::setMonthDisplayTypeArgs($query);				
-            }
-         } else if ( is_single() ) {
+        	if( !empty($query->query_vars['eventDisplay']) ) {
+            	switch ( $query->query_vars['eventDisplay'] ) {
+               		case "past":
+                  		$query = self::setPastDisplayTypeArgs($query);
+                  		break;
+               		case "upcoming":
+                  		$query = self::setUpcomingDisplayTypeArgs($query);
+                  		break;
+               		case "day":
+                  		$query = self::setDayDisplayTypeArgs($query);
+                  		break;
+               		case "all":
+                  		$query = self::setAllDisplayTypeArgs($query);
+                  		break;				
+               		case "month":
+                  		$query = self::setMonthDisplayTypeArgs($query);				
+            	}
+         	} else if ( is_single() ) {
 				$args = &$query->query_vars;
 				if( isset($args['eventDate']) ) {
 					$args['start_date'] = $args['eventDate'];
 					$args['end_date'] = $args['eventDate'];
 				}
+			} else {
+				$query = self::setUpcomingDisplayTypeArgs($query);
 			}
 		
 			return $query;
@@ -176,7 +180,7 @@ if (!class_exists('TribeEventsQuery')) {
 				$args['start_date'] = $wp_query->query_vars['eventDate'] . "-01";
 
 			$args['eventDate'] = $args['start_date'];		
-			$args['end_date'] = $tribe_ecp->nextMonth($args['start_date']) . "-01";
+			$args['end_date'] = date( 'Y-m-d', strtotime( $tribe_ecp->nextMonth($args['start_date']) ) -(24*3600) );
 			$args['orderby'] = 'event_date';
 			$args['order'] = "ASC";
 		

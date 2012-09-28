@@ -1,4 +1,11 @@
 jQuery(document).ready(function($) {
+
+	// Load the Chosen JQuery plugin for all select elements with the class 'chosen'.
+	$('.chosen, .tribe-field-dropdown_chosen select').chosen();
+
+	//not done by default on front end
+	$('.hide-if-js').hide();
+
 	if(typeof(TEC) != 'undefined'){	
 		var datepickerOpts = { 
 			dateFormat: 'yy-mm-dd',
@@ -34,11 +41,11 @@ jQuery(document).ready(function($) {
 		// check on load
 		toggleDayTimeDisplay();
 		
-		var spDaysPerMonth = [29,31,28,31,30,31,30,31,31,30,31,30,31];
+		var tribeDaysPerMonth = [29,31,28,31,30,31,30,31,31,30,31,30,31];
 		
 		// start and end date select sections
-		var spStartDays = [ $('#28StartDays'), $('#29StartDays'), $('#30StartDays'), $('#31StartDays') ];
-		var spEndDays = [ $('#28EndDays'), $('#29EndDays'), $('#30EndDays'), $('#31EndDays') ];
+		var tribeStartDays = [ $('#28StartDays'), $('#29StartDays'), $('#30StartDays'), $('#31StartDays') ];
+		var tribeEndDays = [ $('#28EndDays'), $('#29EndDays'), $('#30EndDays'), $('#31EndDays') ];
 				
 		$("select[name='EventStartMonth'], select[name='EventEndMonth']").change(function() {
 			var t = $(this);
@@ -57,11 +64,11 @@ jQuery(document).ready(function($) {
 
 			$('.event' + startEnd + 'DateField').remove();
 			if( startEnd == "Start") {
-				var selectObject = spStartDays[ spDaysPerMonth[ chosenMonth ] - 28 ];
+				var selectObject = tribeStartDays[ tribeDaysPerMonth[ chosenMonth ] - 28 ];
 				selectObject.val( currentDateField.val() );
 				$("select[name='EventStartMonth']").after( selectObject );
 			} else {
-				var selectObject = spEndDays[ spDaysPerMonth[ chosenMonth ] - 28 ];
+				var selectObject = tribeEndDays[ tribeDaysPerMonth[ chosenMonth ] - 28 ];
 				selectObject.val( currentDateField.val() );
 				$('select[name="EventEndMonth"]').after( selectObject );
 			}
@@ -127,24 +134,24 @@ jQuery(document).ready(function($) {
 	}
 
 	//show state/province input based on first option in countries list, or based on user input of country
-	function spShowHideCorrectStateProvinceInput(country) {
+	function tribeShowHideCorrectStateProvinceInput(country) {
 		if (country == 'US' || country == 'United States') {
-			$("#StateProvinceSelect").show();
+			$("#StateProvinceSelect_chzn").show();
 			$("#StateProvinceText").hide();
 		} else if ( country != '' ) {
 			$("#StateProvinceText").show();
-			$("#StateProvinceSelect").hide();
+			$("#StateProvinceSelect_chzn").hide();
 		} else {
 			$("#StateProvinceText").hide();
-			$("#StateProvinceSelect").hide();
+			$("#StateProvinceSelect_chzn").hide();
 		}
 	}
 	
-	spShowHideCorrectStateProvinceInput( $("#EventCountry > option:selected").val() );
+	tribeShowHideCorrectStateProvinceInput( $("#EventCountry > option:selected").val() );
 
 	$("#EventCountry").change(function() {
 		var countryLabel = $(this).find('option:selected').val();
-		spShowHideCorrectStateProvinceInput( countryLabel );
+		tribeShowHideCorrectStateProvinceInput( countryLabel );
 	});
 
 	// If recurrence changes on a recurring event, then show warning, and automatically change whole recurrence
@@ -186,31 +193,11 @@ jQuery(document).ready(function($) {
 		return $('[name="is_recurring"]').val() == "true" && !$('[name="recurrence_action"]').val() && !$('[name="recurrence_action"]').val()
 	}
 	
-	function validRecEnd() {
-		if($('[name="recurrence[type]"]').val() != "None" && 
-			$('[name="recurrence[end-type]"] option:selected"').val() == "On")
-		{
-			return $('[name="recurrence[end]"]').val() && 
-			!$('[name="recurrence[end]"]').hasClass('placeholder');
-		}
-		
-		return true;
-	} 
-	
 	function resetSubmitButton() {
 		$('#publishing-action .button-primary-disabled').removeClass('button-primary-disabled');
 		$('#publishing-action #ajax-loading').css('visibility', 'hidden');
 		
 	}
-	
-	$('.wp-admin.events-cal #post').submit(function(e) {
-		if(!validRecEnd()) {
-			e.preventDefault();
-			alert($('#rec-end-error').text());
-			$('#rec-end-error').show();
-			resetSubmitButton();
-		}
-	});
 	
 	$('#EventInfo input, #EventInfo select').change(function() {
 		$('.rec-error').hide();
@@ -241,7 +228,7 @@ jQuery(document).ready(function($) {
 							self.submit();
 						}
 				}, {
-						text:"Future Events",
+						text:"All Events",
 						click: function() { 
 							$('[name="recurrence_action"]').val(2);
 
@@ -250,7 +237,7 @@ jQuery(document).ready(function($) {
 
 							$(this).dialog("close"); 
 							self.submit();
-						}					
+						}				
 				}],
 				close: function() {
 					eventSubmitButton.data('clicked', null);
@@ -262,6 +249,34 @@ jQuery(document).ready(function($) {
 	function setupSubmitButton() {
 		//publishing-action		
 	}
+
+	$('.wp-admin.events-cal .submitdelete').click(function(e) {
+
+		var link = $(this);
+		var isRecurringLink = $(this).attr('href').split('&eventDate');
+
+		if(isRecurringLink[1]) {
+			e.preventDefault();
+
+			$('#deletion-dialog').dialog({
+				//submitdelete
+				modal: true,
+				buttons: [{
+					text: "Only This Event",
+					click: function() {
+						document.location = link.attr('href') + '&event_start=' + $(this).data('start');
+					}
+				},
+				{
+					text: "All Events",
+					click: function() {
+						document.location = link.attr('href') + '&deleteAll';
+					}
+				}]
+			});
+		}
+
+	});
 
 	// recurrence ui
 	$('[name="recurrence[type]"]').change(function() {
@@ -320,4 +335,32 @@ jQuery(document).ready(function($) {
 			dayselect.hide();
 		}
 	});
+
+	function maybeDisplayPressTrendsDialogue() {
+		return $('[name="maybeDisplayPressTrendsDialogue"]').val() == "1"
+	}
+
+	if( maybeDisplayPressTrendsDialogue() ) {
+			$('#presstrends-dialog').dialog({
+				modal: true,
+				buttons: [{
+						text:"Send data",
+						click: function() { 
+							$('[name="presstrends_action"]').val(1);
+							$(this).dialog("close"); 							
+							$('[name="sendPressTrendsData"]').prop("checked", true);
+							$('#tribeSaveSettings').click();
+						}
+				}, {
+						text:"Do not send data",
+						click: function() { 
+							$('[name="presstrends_action"]').val(0);
+							$(this).dialog("close"); 
+							$('[name="sendPressTrendsData"]').prop("checked", false);
+						}
+				}]
+			});
+			
+		}
+	
 });

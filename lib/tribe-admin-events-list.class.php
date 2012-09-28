@@ -25,7 +25,7 @@ if (!class_exists('TribeEventsAdminList')) {
 				add_filter( 'tribe_apm_headers_' . TribeEvents::POSTTYPE, array(__CLASS__, 'column_headers_check'), 10, 1 );
 				add_filter( 'posts_results',  array(__CLASS__, 'cache_posts_results'));
 				add_filter( 'get_edit_post_link',  array(__CLASS__, 'add_event_occurrance_to_edit_link'), 10, 2);
-				add_filter( 'views_edit-sp_events',		array( __CLASS__, 'update_event_counts' ) );			
+				add_filter( 'views_edit-tribe_events',		array( __CLASS__, 'update_event_counts' ) );			
 				add_action( 'manage_posts_custom_column', array(__CLASS__, 'custom_columns'), 10, 2);
 				add_action( 'manage_edit-' . TribeEvents::POSTTYPE . '_sortable_columns', array(__CLASS__, 'register_date_sortables'), 10, 2);
 			
@@ -46,7 +46,7 @@ if (!class_exists('TribeEventsAdminList')) {
 		// event deletion
 		public static function add_date_to_recurring_event_trash_link( $link, $postId ) {
 			if ( function_exists('tribe_is_recurring_event') && is_array(self::$events_list) && tribe_is_recurring_event($postId) && isset(self::$events_list[0]) ) {
-				return add_query_arg( array( 'eventDate'=>urlencode( TribeDateUtils::dateOnly( self::$events_list[0]->EventEndDate ) ) ), $link );
+				return add_query_arg( array( 'eventDate'=>urlencode( TribeDateUtils::dateOnly( self::$events_list[0]->EventStartDate ) ) ), $link );
 			}
 		
 			return $link;
@@ -155,7 +155,7 @@ if (!class_exists('TribeEventsAdminList')) {
 				$per_page = ( $per_page ) ? (int) $per_page : 20; // 20 is default in backend
 			}
 			else {
-				$per_page = intval( get_option('posts_per_page') );
+				$per_page = (int) tribe_get_option('postsPerPage', 10);
 			}
 
 			$page_start = ( $paged - 1 ) * $per_page;
@@ -166,7 +166,7 @@ if (!class_exists('TribeEventsAdminList')) {
 		public static function column_headers( $columns ) {
 			global $tribe_ecp;
 
-			foreach ( $columns as $key => $value ) {
+			foreach ( (array) $columns as $key => $value ) {
 				$mycolumns[$key] = $value;
 				if ( $key =='author' )
 					$mycolumns['events-cats'] = __( 'Event Categories', 'tribe-events-calendar' );
@@ -176,8 +176,10 @@ if (!class_exists('TribeEventsAdminList')) {
 			unset($columns['date']);
 			$columns['start-date'] = __( 'Start Date', 'tribe-events-calendar' );
 			$columns['end-date'] = __( 'End Date', 'tribe-events-calendar' );
-			$columns['recurring'] = __( 'Recurring?', 'tribe-events-calendar' );
-
+			if ( function_exists( 'tribe_is_recurring_event' ) ) {
+				$columns['recurring'] = __( 'Recurring?', 'tribe-events-calendar' );
+			}
+			
 			return $columns;
 		}
 		
@@ -211,7 +213,7 @@ if (!class_exists('TribeEventsAdminList')) {
 				}
 				if ( $column_id == 'start-date' ) {
 					echo tribe_event_format_date(strtotime(self::$events_list[0]->EventStartDate), false);
-					if ( ! self::$end_col_active ) self::advance_date();
+					if ( ! self::$end_col_active || ! self::$start_col_first ) self::advance_date();
 				}
 				if ( $column_id == 'end-date' ) {
 					echo tribe_event_format_date(strtotime(self::$events_list[0]->EventEndDate), false);
@@ -255,7 +257,7 @@ if (!class_exists('TribeEventsAdminList')) {
 
 			// if is a recurring event
 			if ( function_exists('tribe_is_recurring_event') && tribe_is_recurring_event($eventId) && isset(self::$events_list[0])) {
-				$link = add_query_arg('eventDate', urlencode( TribeDateUtils::dateOnly( self::$events_list[0]->EventEndDate ) ), $link);
+				$link = add_query_arg('eventDate', urlencode( TribeDateUtils::dateOnly( self::$events_list[0]->EventStartDate ) ), $link);
 			}
 		
 			return $link;
@@ -273,7 +275,7 @@ if (!class_exists('TribeEventsAdminList')) {
 				$total_posts -= $num_posts->$state;
 			}
 
-			$counts['all'] = "<a href='edit.php?post_type=sp_events' class='current'>".sprintf(__( 'All %s', 'tribe-events-calendar'),"<span class='count'>($total_posts)</span>")."</a>";
+			$counts['all'] = "<a href='edit.php?post_type=tribe_events' class='current'>".sprintf(__( 'All %s', 'tribe-events-calendar'),"<span class='count'>($total_posts)</span>")."</a>";
 		
 			foreach ( get_post_stati(array('show_in_admin_status_list' => true), 'objects') as $status ) {
 				$class = '';

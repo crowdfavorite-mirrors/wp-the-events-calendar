@@ -33,7 +33,7 @@ if (!class_exists('TribeEventsImport')) {
 
 		private function __construct( ) {
 			add_action( 'admin_init', array( $this, 'upgradeData' ) );
-			add_action( 'tribe_events_options_post_form', array( $this, 'adminForm' ) );
+			add_action( 'tribe_settings_after_form_element_tab_general', array( $this, 'adminForm' ) );
 			add_action( 'admin_notices', array( $this, 'upgradeNotice' ) );
 			add_action( 'admin_notices', array( $this, 'promptUpgrade') );
 		}
@@ -41,7 +41,7 @@ if (!class_exists('TribeEventsImport')) {
 		public function promptUpgrade() {
 			if ( self::hasLegacyEvents() ) {
 				echo '<div class="error"><p>' . 
-					__('Welcome to Events 2.0! This is a HUGE upgrade from 1.6.5. Please make sure you have backed up before proceeding any further. You can easily <a href=" http://wordpress.org/extend/plugins/the-events-calendar/download/">revert to an old version</a> if you want to backup first. This upgrade includes two major steps, <a href="options-general.php?page=tribe-events-calendar">migrating data</a> & updating your templates as necessary. There have been significant changes to the template tags and functions. Check out our <a href="http://tri.be/migrating-from-events-calendar-1-6-5-to-2-0">walkthrough on the upgrade</a> before proceeding and check out the FAQ & Knowledge base from the <a href="http://tri.be/support/">support page</a>. If you\'re new to The Events Calendar, you may want to review our <a href="http://tri.be/support/documentation/events-calendar-pro-new-user-primer/">new user primer</a>.<br/><br/> You have events that need to be migrated.  Please visit the bottom of the <a href="options-general.php?page=tribe-events-calendar">settings page</a> to perform the migration.', 'tribe-events-calendar') . 
+					__('Welcome to Events 2.0! This is a HUGE upgrade from 1.6.5. Please make sure you have backed up before proceeding any further. You can easily <a href=" http://wordpress.org/extend/plugins/the-events-calendar/download/">revert to an old version</a> if you want to backup first. This upgrade includes two major steps, <a href="edit.php?post_type=' . TribeEvents::POSTTYPE .'&page=tribe-settings&tab=general">migrating data</a> & updating your templates as necessary. There have been significant changes to the template tags and functions. Check out our <a href="http://tri.be/migrating-from-events-calendar-1-6-5-to-2-0">walkthrough on the upgrade</a> before proceeding and check out the FAQ & Knowledge base from the <a href="http://tri.be/support/">support page</a>. If you\'re new to The Events Calendar, you may want to review our <a href="http://tri.be/support/documentation/events-calendar-pro-new-user-primer/">new user primer</a>.<br/><br/> You have events that need to be migrated.  Please visit the bottom of the <a href="edit.php?post_type=' . TribeEvents::POSTTYPE .'&page=tribe-events-calendar">settings page</a> to perform the migration.', 'tribe-events-calendar') . 
 					'</p></div>';
 			}
 		}
@@ -49,7 +49,7 @@ if (!class_exists('TribeEventsImport')) {
 		public function adminForm() {
 			if ( self::hasLegacyEvents() ) {
 				?>
-				<form id="sp-upgrade" method="post" >
+				<form id="tribe-upgrade" method="post" >
 					<?php wp_nonce_field('upgradeEventsCalendar') ?>
 					<h4><?php _e('Upgrade from The Events Calendar', 'tribe-events-calendar' ); ?></h4>
 					<p><?php _e('It appears that you have some old events calendar data that needs to be upgraded. Please be sure to back up your database before initiating the upgrade. This process can not be undone.', 'tribe-events-calendar' ) ?></p>
@@ -122,7 +122,11 @@ if (!class_exists('TribeEventsImport')) {
 						wp_set_object_terms( $post->ID, $post->cats, TribeEvents::TAXONOMY );
 
 					self::convertVenue($post);
+					
+					// Translate the post's setting for google maps display
+					self::translateGoogleMaps( $post );
 					$num_upgraded++;
+					
 				}
 				if ( $num_upgraded > 0 ) {
 					self::$upgradeMessage = sprintf( __( 'You successfully migrated (%d) entries.', 'tribe-events-calendar' ), $num_upgraded );
@@ -170,7 +174,7 @@ if (!class_exists('TribeEventsImport')) {
 			$unique_venue = $venue['Venue'] . $venue['Address'] . $venue['StateProvince'];
 
 			if( $unique_venue && trim($unique_venue) != "" ) {
-				if( !self::$curVenues[$unique_venue] ) {
+				if( !isset( self::$curVenues[$unique_venue] ) ) {
 					self::$curVenues[$unique_venue] = TribeEventsAPI::createVenue($venue);
 				} else {
 					TribeEventsAPI::updateVenue(self::$curVenues[$unique_venue], $venue);
@@ -208,6 +212,7 @@ if (!class_exists('TribeEventsImport')) {
 		 * @return array of category names
 		 */
 		private static function getCatNames( $cats ) {
+			$r = array();
 			foreach ( $cats as $cat ) {
 				$r[] = $cat->name;
 			}
@@ -239,7 +244,19 @@ if (!class_exists('TribeEventsImport')) {
 				}
 			}
 			return $cats;
-		}		
+		}
+		
+		/**
+		 * Translate Google Maps setting over
+		 *
+		 * @param object $post post object
+		 */
+		private static function translateGoogleMaps( $post ) {
+			$show_map = (get_post_meta( $post->ID, '_EventShowMap', 'false' ) == 'true') ? '1' : '0';
+			update_post_meta( $post->ID, '_EventShowMap', $show_map );
+			$show_map_link = (get_post_meta( $post->ID, '_EventShowMapLink', 'false' ) == 'true') ? '1' : '0';
+			update_post_meta( $post->ID, '_EventShowMapLink', $show_map_link );
+		}
 	}
 
 	TribeEventsImport::instance();
